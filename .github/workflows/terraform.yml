@@ -1,4 +1,4 @@
-name: Terraform CI-CD
+name: Terraform CI-CD  # Terraform CI-CD Pipeline
 
 on:
   push:
