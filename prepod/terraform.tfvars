@@ -17,6 +17,6 @@ cnt = {
   cnt1 = {
     name                  = "cnt-pip1"
     container_access_type = "private"
-    resource_group_name = "rg-pip1"
+    resource_group_name   = "rg-pip1"
     data_name             = "stgpip1"
 } }
