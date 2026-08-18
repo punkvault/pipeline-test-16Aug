@@ -66,7 +66,15 @@ jobs:
 
       - name: Install Gitleaks
         run: |
-          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | sh -s -- -b /usr/local/bin
+          GITLEAKS_VERSION="8.24.3"
+          wget -q "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          sudo chmod +x /usr/local/bin/gitleaks
+
+      - name: Verify Gitleaks
+        run: |
+          gitleaks version
 
       - name: Run Gitleaks
         run: |
@@ -93,9 +101,6 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # --------------------------------------------------------
-      # Check Azure Secrets
-      # --------------------------------------------------------
       - name: Check Azure Secrets
         shell: bash
         run: |
@@ -121,9 +126,9 @@ jobs:
 
           echo "All Azure secrets are available."
 
-      # --------------------------------------------------------
-      # Az#ure Login usingg Client Secret
-      # --------------------------------------------------------
+      # ----------------------------------------------------------
+      # Azure Login using CLIENT SECRET
+      # ----------------------------------------------------------
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -135,23 +140,14 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      # --------------------------------------------------------
-      # Terraform Init
-      # --------------------------------------------------------
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
 
-      # --------------------------------------------------------
-      # Terraform Plan
-      # --------------------------------------------------------
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform plan -input=false -out=tfplan
 
-      # --------------------------------------------------------
-      # Upload Terraform Plan
-      # --------------------------------------------------------
       - name: Upload Terraform Plan
         uses: actions/upload-artifact@v4
         with:
@@ -168,7 +164,7 @@ jobs:
 
     needs: plan
 
-    # Apply ONLY when code is pushed/merged to main
+    # Apply ONLY after push/merge to main
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     environment:
@@ -181,9 +177,9 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # --------------------------------------------------------
-      # Azure Login using Client Secret
-      # --------------------------------------------------------
+      # ----------------------------------------------------------
+      # Azure Login using CLIENT SECRET
+      # ----------------------------------------------------------
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -195,25 +191,16 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      # --------------------------------------------------------
-      # Terraform Init
-      # --------------------------------------------------------
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
 
-      # --------------------------------------------------------
-      # Download Terraform Plan
-      # --------------------------------------------------------
       - name: Download Terraform Plan
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan
           path: ${{ env.TF_WORKING_DIR }}
 
-      # --------------------------------------------------------
-      # Terraform Apply
-      # --------------------------------------------------------
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform apply -input=false -auto-approve tfplan
