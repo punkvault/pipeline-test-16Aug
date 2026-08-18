@@ -122,7 +122,7 @@ jobs:
           echo "All Azure secrets are available."
 
       # --------------------------------------------------------
-      # Az#ure Login using Client Secret
+      # Az#ure Login usingg Client Secret
       # --------------------------------------------------------
       - name: Azure Login
         uses: azure/login@v2
