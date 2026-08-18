@@ -1,4 +1,4 @@
-name: Terraform CI-CD ##
+name: Terraform CI-CD
 
 on:
   workflow_dispatch:
@@ -23,18 +23,15 @@ env:
 jobs:
 
   # ============================================================
-  # STAGE 1 - SCAN
+  # STAGE 1 - TERRAFORM SCAN
   # ============================================================
   scan:
     name: Terraform Scan
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-            fetch-depth: 0
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -62,14 +59,22 @@ jobs:
     needs: scan
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Gitleaks
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | sh -s -- -b /usr/local/bin
 
       - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gitleaks detect \
+            --source=. \
+            --redact \
+            --exit-code=1 \
+            --verbose
 
 
   # ============================================================
@@ -82,7 +87,6 @@ jobs:
     needs: secret-scan
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -90,7 +94,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       # --------------------------------------------------------
-      # Check GitHub Secrets
+      # Check Azure Secrets
       # --------------------------------------------------------
       - name: Check Azure Secrets
         shell: bash
@@ -118,7 +122,7 @@ jobs:
           echo "All Azure secrets are available."
 
       # --------------------------------------------------------
-      # Azure Login - CLIENT SECRET AUTHENTICATION
+      # Azure Login using Client Secret
       # --------------------------------------------------------
       - name: Azure Login
         uses: azure/login@v2
@@ -143,7 +147,7 @@ jobs:
       # --------------------------------------------------------
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform plan -out=tfplan
+        run: terraform plan -input=false -out=tfplan
 
       # --------------------------------------------------------
       # Upload Terraform Plan
@@ -164,14 +168,13 @@ jobs:
 
     needs: plan
 
-    # Apply only on main branch push
+    # Apply ONLY when code is pushed/merged to main
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     environment:
       name: production
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -179,7 +182,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       # --------------------------------------------------------
-      # Azure Login - CLIENT SECRET AUTHENTICATION
+      # Azure Login using Client Secret
       # --------------------------------------------------------
       - name: Azure Login
         uses: azure/login@v2
@@ -213,4 +216,4 @@ jobs:
       # --------------------------------------------------------
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -input=false -auto-approve tfplan
