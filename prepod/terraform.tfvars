@@ -20,3 +20,4 @@ cnt = {
     resource_group_name   = "rg-pip1"
     data_name             = "stgpip1"
 } }
+
